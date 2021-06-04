@@ -70,7 +70,7 @@ public class MainActivity extends IntroActivity {
 
     public void verificarUsuarioLogado() {
         autenticacao = ConfiguracaoFirebase.getFirebaseAutenticacao();
-        //USADO PARA TESTAR O FLUXO DE ACTIVITYS EM LOGIN E CADASTRO:
+        //SignOut abaixo USADO PARA TESTAR O FLUXO DE ACTIVITYS EM LOGIN E CADASTRO:
         //autenticacao.signOut();
         if (autenticacao.getCurrentUser() != null) {
             abrirTelaPrincipal();

@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -11,6 +12,7 @@ import android.widget.Toast;
 
 import com.cursoandroid.organizze.R;
 import com.cursoandroid.organizze.config.ConfiguracaoFirebase;
+import com.cursoandroid.organizze.helper.Base64Custom;
 import com.cursoandroid.organizze.model.Usuario;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -90,6 +92,13 @@ public class CadastroActivity extends AppCompatActivity {
             @Override
             public void onComplete(@NonNull Task<AuthResult> task) {
                 if (task.isSuccessful()) {
+
+                    //Dado tudo certo no cadastro vamos adicionar setar o parametro idUsuario para nosso objeto usuario
+                    String idUsuario = Base64Custom.codificarBase64(usuario.getEmail());
+                    Log.i("Alexandre", idUsuario);
+                    usuario.setIdUsuario(idUsuario);
+                    //Chamando método para salvar o nó idUsuário e o nome e o e-mail dentro deste nó
+                    usuario.salvarUsuario();
                     finish();
                     /*Toast.makeText(CadastroActivity.this,
                             "Sucesso ao cadastrar usuario!",
