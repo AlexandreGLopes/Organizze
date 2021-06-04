@@ -1,5 +1,6 @@
 package com.cursoandroid.organizze.activity;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -79,7 +80,8 @@ public class PrincipalActivity extends AppCompatActivity {
         //RETIRADO: NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_principal);
         //RETIRADO: appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
         //RETIRADO: NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
-
+        /*
+        //Não vamos adicionar o click listener abaixo neste projeto. Vamos adicionar um evento onClick no xml dos FABs
         FloatingActionButton fab = findViewById(R.id.fab);
         //MODIFICADO: Abaixo era: binding.fab.setOnClickListener(new View.OnClickListener() {
         fab.setOnClickListener(new View.OnClickListener() {
@@ -89,6 +91,8 @@ public class PrincipalActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+
+         */
     }
 
     //RETIRADO: @Override
@@ -97,4 +101,12 @@ public class PrincipalActivity extends AppCompatActivity {
     //RETIRADO:     return NavigationUI.navigateUp(navController, appBarConfiguration)
     //RETIRADO:             || super.onSupportNavigateUp();
     //RETIRADO: }
+
+    public void adicionarDespesa(View view) {
+        startActivity(new Intent(this, DespesasActivity.class));
+    }
+
+    public void adicionarReceita(View view) {
+        startActivity(new Intent(this, ReceitasActivity.class));
+    }
 }
