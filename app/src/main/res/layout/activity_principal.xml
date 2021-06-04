@@ -42,7 +42,8 @@
             android:src="@drawable/ic_adicionar_branco_24"
             fab:fab_colorNormal="@color/colorPrimaryDespesa"
             fab:fab_size="mini"
-            fab:fab_label="Despesa" />
+            fab:fab_label="Despesa"
+            tools:ignore="VectorDrawableCompat" />
 
         <com.github.clans.fab.FloatingActionButton
             android:id="@+id/menu_receita"
@@ -52,7 +53,8 @@
             android:src="@drawable/ic_adicionar_branco_24"
             fab:fab_colorNormal="@color/colorPrimaryReceita"
             fab:fab_size="mini"
-            fab:fab_label="Receita" />
+            fab:fab_label="Receita"
+            tools:ignore="VectorDrawableCompat" />
 
     </com.github.clans.fab.FloatingActionMenu>
 

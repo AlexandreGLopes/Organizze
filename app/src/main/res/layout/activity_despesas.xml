@@ -9,7 +9,7 @@
     <EditText
         android:id="@+id/editTextNumberDecimal2"
         android:layout_width="0dp"
-        android:layout_height="100dp"
+        android:layout_height="120dp"
         android:background="@color/colorPrimaryDespesa"
         android:backgroundTint="@color/colorPrimaryDespesa"
         android:ems="10"
@@ -93,10 +93,11 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="32dp"
         android:clickable="true"
-        app:tint="@null"
+        app:backgroundTint="@color/colorPrimaryDespesa"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        android:src="@drawable/ic_baseline_check_24" />
+        app:srcCompat="@drawable/ic_baseline_check_24"
+        app:tint="@null" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
