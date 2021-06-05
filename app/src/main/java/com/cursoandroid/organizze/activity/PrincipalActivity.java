@@ -8,7 +8,9 @@ import com.google.android.material.snackbar.Snackbar;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 
 import androidx.appcompat.widget.Toolbar;
 import androidx.navigation.NavController;
@@ -19,6 +21,9 @@ import androidx.navigation.ui.NavigationUI;
 //RETIRADO: import com.cursoandroid.organizze.activity.databinding.ActivityPrincipalBinding;
 
 import com.cursoandroid.organizze.R;
+import com.prolificinteractive.materialcalendarview.CalendarDay;
+import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
+import com.prolificinteractive.materialcalendarview.OnMonthChangedListener;
 
 /*
 
@@ -65,6 +70,9 @@ public class PrincipalActivity extends AppCompatActivity {
     //RETIRADO: private AppBarConfiguration appBarConfiguration;
     //RETIRADO: private ActivityPrincipalBinding binding;
 
+    private MaterialCalendarView calendarView;
+    private TextView textoSaudacao, textoSaldo;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -93,6 +101,12 @@ public class PrincipalActivity extends AppCompatActivity {
         });
 
          */
+
+        textoSaldo = findViewById(R.id.textSaldo);
+        textoSaudacao = findViewById(R.id.textSaudacao);
+        calendarView = findViewById(R.id.calendarView);
+        configuraCalendarView();
+
     }
 
     //RETIRADO: @Override
@@ -108,5 +122,20 @@ public class PrincipalActivity extends AppCompatActivity {
 
     public void adicionarReceita(View view) {
         startActivity(new Intent(this, ReceitasActivity.class));
+    }
+
+    public void configuraCalendarView() {
+        //Definir meses em portugues
+        CharSequence meses[] = {"Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "DALEmbro"};
+        calendarView.setTitleMonths(meses);
+
+        //Método que verifica a navegação entre os meses
+        calendarView.setOnMonthChangedListener(new OnMonthChangedListener() {
+            @Override
+            public void onMonthChanged(MaterialCalendarView widget, CalendarDay date) {
+                Log.i("data: ", "valor: " + (date.getMonth()+1) + "/" + date.getYear());
+                //Na versão 1.4.3 que estamos usando temos que somar 1 ao Mês porque ele está começando do 0 e aí o número do mês com seu nome não bate. Na versão 2.0.0 isso foi corrigido
+            }
+        });
     }
 }

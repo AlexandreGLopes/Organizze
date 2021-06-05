@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 
 import com.cursoandroid.organizze.R;
@@ -13,6 +14,9 @@ import com.cursoandroid.organizze.config.ConfiguracaoFirebase;
 import com.google.firebase.auth.FirebaseAuth;
 import com.heinrichreimersoftware.materialintro.app.IntroActivity;
 import com.heinrichreimersoftware.materialintro.slide.FragmentSlide;
+import com.prolificinteractive.materialcalendarview.CalendarDay;
+import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
+import com.prolificinteractive.materialcalendarview.OnMonthChangedListener;
 
 public class MainActivity extends IntroActivity {
 
@@ -52,6 +56,7 @@ public class MainActivity extends IntroActivity {
                 .canGoForward(false)
                 .build()
         );
+
     }
 
     @Override
