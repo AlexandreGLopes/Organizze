@@ -91,6 +91,10 @@ public class PrincipalActivity extends AppCompatActivity {
 
     private FirebaseAuth autenticacao = ConfiguracaoFirebase.getFirebaseAutenticacao();
     private DatabaseReference firebaseRef = ConfiguracaoFirebase.getFirebaseDatabase();
+    //Vamos criar um segundo database reference para que ele seja instanciado como um objeto. Aí poderemos anexar um evento a ele, desanexar um evento e chamá-lo de diversos locais do código. Assim, quando precisar chamar o evento de Listener do Firebase para atualizar o resumo poderemos retira-lo em dado momento, quando sairmos do app por exemplo, para não ficar sendo notificados do firebase
+    private DatabaseReference usuarioRef;
+    //Objeto que vai poder tratar e receber um event event listener
+    private ValueEventListener valueEventListenerUsuario;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,8 +130,21 @@ public class PrincipalActivity extends AppCompatActivity {
         textoSaudacao = findViewById(R.id.textSaudacao);
         calendarView = findViewById(R.id.calendarView);
         configuraCalendarView();
-        recuperarResumo();
 
+    }
+
+    //removendo event listener do objeto usuarioRef
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.i("evento", "Evento foi removido");
+        usuarioRef.removeEventListener(valueEventListenerUsuario);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        recuperarResumo();
     }
 
     //RETIRADO: @Override
@@ -142,10 +159,11 @@ public class PrincipalActivity extends AppCompatActivity {
 
         String emailUsuario = autenticacao.getCurrentUser().getEmail();
         String idUsuario = Base64Custom.codificarBase64(emailUsuario);
-        DatabaseReference usuarioRef = firebaseRef.child("usuarios").child(idUsuario);
+        usuarioRef = firebaseRef.child("usuarios").child(idUsuario);
 
+        Log.i("evento", "Evento foi adicionado");
         //Event listener para receber as mudanças no firebase, passar para um objeto usuarios e fazer as contas entre despesa total e receita total
-        usuarioRef.addValueEventListener(new ValueEventListener() {
+        valueEventListenerUsuario = usuarioRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 Usuario usuario = snapshot.getValue(Usuario.class);
@@ -210,4 +228,5 @@ public class PrincipalActivity extends AppCompatActivity {
             }
         });
     }
+
 }
