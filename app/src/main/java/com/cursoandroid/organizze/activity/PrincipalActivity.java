@@ -4,6 +4,8 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import com.cursoandroid.organizze.config.ConfiguracaoFirebase;
+import com.cursoandroid.organizze.helper.Base64Custom;
+import com.cursoandroid.organizze.model.Usuario;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -26,9 +28,15 @@ import androidx.navigation.ui.NavigationUI;
 
 import com.cursoandroid.organizze.R;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.ValueEventListener;
 import com.prolificinteractive.materialcalendarview.CalendarDay;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 import com.prolificinteractive.materialcalendarview.OnMonthChangedListener;
+
+import java.text.DecimalFormat;
 
 /*
 
@@ -77,7 +85,12 @@ public class PrincipalActivity extends AppCompatActivity {
 
     private MaterialCalendarView calendarView;
     private TextView textoSaudacao, textoSaldo;
-    private FirebaseAuth autenticacao;
+    private Double despesaTotal = 0.00;
+    private Double receitaTotal = 0.00;
+    private Double resumoUsuario = 0.00;
+
+    private FirebaseAuth autenticacao = ConfiguracaoFirebase.getFirebaseAutenticacao();
+    private DatabaseReference firebaseRef = ConfiguracaoFirebase.getFirebaseDatabase();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,6 +126,7 @@ public class PrincipalActivity extends AppCompatActivity {
         textoSaudacao = findViewById(R.id.textSaudacao);
         calendarView = findViewById(R.id.calendarView);
         configuraCalendarView();
+        recuperarResumo();
 
     }
 
@@ -123,18 +137,49 @@ public class PrincipalActivity extends AppCompatActivity {
     //RETIRADO:             || super.onSupportNavigateUp();
     //RETIRADO: }
 
+    //método para recuperar o saldo do usuario
+    public void recuperarResumo() {
 
+        String emailUsuario = autenticacao.getCurrentUser().getEmail();
+        String idUsuario = Base64Custom.codificarBase64(emailUsuario);
+        DatabaseReference usuarioRef = firebaseRef.child("usuarios").child(idUsuario);
+
+        //Event listener para receber as mudanças no firebase, passar para um objeto usuarios e fazer as contas entre despesa total e receita total
+        usuarioRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                Usuario usuario = snapshot.getValue(Usuario.class);
+                despesaTotal = usuario.getDespesaTotal();
+                receitaTotal = usuario.getReceitaTotal();
+                resumoUsuario = receitaTotal - despesaTotal;
+
+                DecimalFormat decimalFormat = new DecimalFormat("0.##");
+                String resultadoFormatado = decimalFormat.format(resumoUsuario);
+
+                textoSaudacao.setText("Olá, " + usuario.getNome());
+                textoSaldo.setText("R$ " + resultadoFormatado);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+
+            }
+        });
+    }
+
+    //recuperando e inflando o xml do menu_principal em um menu na toolbar
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_principal, menu);
         return super.onCreateOptionsMenu(menu);
     }
 
+    //método para verificar se algum item do menu foi clicado
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        //estrutura de decisão para saber qual item foi clicado. Se for o botão sair, dá logout, termina a activity atual e inicia outra activity
         switch (item.getItemId()) {
             case R.id.menuSair:
-                autenticacao = ConfiguracaoFirebase.getFirebaseAutenticacao();
                 autenticacao.signOut();
                 startActivity(new Intent(this, MainActivity.class));
                 finish();
