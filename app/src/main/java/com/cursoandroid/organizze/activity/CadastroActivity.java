@@ -95,7 +95,6 @@ public class CadastroActivity extends AppCompatActivity {
 
                     //Dado tudo certo no cadastro vamos adicionar setar o parametro idUsuario para nosso objeto usuario
                     String idUsuario = Base64Custom.codificarBase64(usuario.getEmail());
-                    Log.i("Alexandre", idUsuario);
                     usuario.setIdUsuario(idUsuario);
                     //Chamando método para salvar o nó idUsuário e o nome e o e-mail dentro deste nó
                     usuario.salvarUsuario();
