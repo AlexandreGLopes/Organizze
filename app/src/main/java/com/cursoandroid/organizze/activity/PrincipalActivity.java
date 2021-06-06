@@ -5,7 +5,9 @@ import android.os.Bundle;
 
 import com.cursoandroid.organizze.config.ConfiguracaoFirebase;
 import com.cursoandroid.organizze.helper.Base64Custom;
+import com.cursoandroid.organizze.model.Movimentacao;
 import com.cursoandroid.organizze.model.Usuario;
+import com.cursoandroid.organizze.adapter.AdapterMovimentacoes;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -16,6 +18,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Adapter;
 import android.widget.TextView;
 
 import androidx.appcompat.widget.Toolbar;
@@ -23,6 +26,8 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 //RETIRADO: import com.cursoandroid.organizze.activity.databinding.ActivityPrincipalBinding;
 
@@ -37,6 +42,8 @@ import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 import com.prolificinteractive.materialcalendarview.OnMonthChangedListener;
 
 import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
 
 /*
 
@@ -96,6 +103,16 @@ public class PrincipalActivity extends AppCompatActivity {
     //Objeto que vai poder tratar e receber um event event listener
     private ValueEventListener valueEventListenerUsuario;
 
+    //atributos do RecyclerView
+    private RecyclerView recyclerMovimentos;
+    private AdapterMovimentacoes adapterMovimentacoes;
+    private List<Movimentacao> listaMovimentacoes = new ArrayList<>();
+
+    //atributos de movimentações
+    private DatabaseReference movimentacaoRef;
+    private String mesAnoSelecionado;
+    private ValueEventListener valueEventListenerMovimentacoes;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -131,20 +148,33 @@ public class PrincipalActivity extends AppCompatActivity {
         calendarView = findViewById(R.id.calendarView);
         configuraCalendarView();
 
+        recyclerMovimentos = findViewById(R.id.recyclerMovimentos);
+
+        //Condigurar adapter
+        adapterMovimentacoes = new AdapterMovimentacoes(listaMovimentacoes, this);
+
+        //Configurar RecyclerView
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
+        recyclerMovimentos.setLayoutManager(layoutManager);
+        recyclerMovimentos.setHasFixedSize(true);
+        recyclerMovimentos.setAdapter(adapterMovimentacoes);
+
     }
 
     //removendo event listener do objeto usuarioRef
     @Override
     protected void onStop() {
         super.onStop();
-        Log.i("evento", "Evento foi removido");
+        //Log.i("evento", "Evento foi removido");
         usuarioRef.removeEventListener(valueEventListenerUsuario);
+        movimentacaoRef.removeEventListener(valueEventListenerMovimentacoes);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         recuperarResumo();
+        recuperarMovimentacoes();
     }
 
     //RETIRADO: @Override
@@ -154,6 +184,45 @@ public class PrincipalActivity extends AppCompatActivity {
     //RETIRADO:             || super.onSupportNavigateUp();
     //RETIRADO: }
 
+    //recuperar os dados de movimentacoes
+    public void recuperarMovimentacoes() {
+
+        String emailUsuario = autenticacao.getCurrentUser().getEmail();
+        String idUsuario = Base64Custom.codificarBase64(emailUsuario);
+
+        movimentacaoRef = firebaseRef.child("movimentacoes")
+                .child(idUsuario)
+                .child(mesAnoSelecionado);
+
+        //Log.i("dadosRetorno", "dados: " + mesAnoSelecionado);
+
+        //Log.i("Mes", "mes: " + mesAnoSelecionado);
+        valueEventListenerMovimentacoes = movimentacaoRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                //Limpando as movimentações
+                listaMovimentacoes.clear();
+                //For para percorrer todos os filhos dentro de mesAnoSelecionado. GetChildren para recuperar todos os filhos de snapshot. GetValue vai recuperar vários objetos do tipo movimentacao
+                for (DataSnapshot dados: snapshot.getChildren()) {
+                    //Log.i("dados", "retorno: " + dados.toString());
+                    Movimentacao movimentacao = dados.getValue(Movimentacao.class);
+                    //Log.i("dados", "retorno: " + movimentacao.getCategoria());
+                    listaMovimentacoes.add(movimentacao);
+
+
+                }
+
+                adapterMovimentacoes.notifyDataSetChanged();
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
     //método para recuperar o saldo do usuario
     public void recuperarResumo() {
 
@@ -161,7 +230,7 @@ public class PrincipalActivity extends AppCompatActivity {
         String idUsuario = Base64Custom.codificarBase64(emailUsuario);
         usuarioRef = firebaseRef.child("usuarios").child(idUsuario);
 
-        Log.i("evento", "Evento foi adicionado");
+        //Log.i("evento", "Evento foi adicionado");
         //Event listener para receber as mudanças no firebase, passar para um objeto usuarios e fazer as contas entre despesa total e receita total
         valueEventListenerUsuario = usuarioRef.addValueEventListener(new ValueEventListener() {
             @Override
@@ -219,12 +288,24 @@ public class PrincipalActivity extends AppCompatActivity {
         CharSequence meses[] = {"Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "DALEmbro"};
         calendarView.setTitleMonths(meses);
 
+        CalendarDay dataAtual = calendarView.getCurrentDate();
+        //A variável abaixo está sendo usada para tratar o getMonth do dataAtual. Por padrão, se fosse um mês com apenas um dígito ele sai com apenas um dígito mesmo. Vamos padronizar para que tenhamos sempre dois dígitos no mês. % representa um caractere coringa para indicar que iniciaremoos uma formatação. Segue o 0 porque queremos preencher com 0. depois vem o 2 porque queremos dois caractereres. Depois vem o d de dígito, de número.
+        String mesSelecionado = String.format("%02d", dataAtual.getMonth()+1);
+        mesAnoSelecionado = String.valueOf(mesSelecionado + "" + dataAtual.getYear());
+
         //Método que verifica a navegação entre os meses
         calendarView.setOnMonthChangedListener(new OnMonthChangedListener() {
             @Override
             public void onMonthChanged(MaterialCalendarView widget, CalendarDay date) {
-                Log.i("data: ", "valor: " + (date.getMonth()+1) + "/" + date.getYear());
+                //mesma coisa da variável acima, fora deste @Override
+                String mesSelecionado = String.format("%02d", date.getMonth()+1);
+                mesAnoSelecionado = String.valueOf(mesSelecionado + "" + date.getYear());
+                //Log.i("data: ", "valor: " + (date.getMonth()+1) + "/" + date.getYear());
                 //Na versão 1.4.3 que estamos usando temos que somar 1 ao Mês porque ele está começando do 0 e aí o número do mês com seu nome não bate. Na versão 2.0.0 isso foi corrigido
+
+                //Já startamos o App anexando um evento de Listener das movimentações. Se não removermos este evento ficaremos adicionando mais e mais eventos toda vez que mudarmos o mês. E a segunda linha abaixo chama o método que recupera as movimentações toda vez que mudamos o mês
+                movimentacaoRef.removeEventListener(valueEventListenerMovimentacoes);
+                recuperarMovimentacoes();
             }
         });
     }
