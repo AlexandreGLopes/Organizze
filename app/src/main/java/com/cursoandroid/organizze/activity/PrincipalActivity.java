@@ -1,5 +1,7 @@
 package com.cursoandroid.organizze.activity;
 
+import android.content.ClipData;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 
@@ -12,6 +14,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.util.Log;
@@ -20,12 +23,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Adapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.widget.Toolbar;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -90,12 +95,14 @@ public class PrincipalActivity extends AppCompatActivity {
     //RETIRADO: private AppBarConfiguration appBarConfiguration;
     //RETIRADO: private ActivityPrincipalBinding binding;
 
+    //Atributos para mostrar informações gerais do usuario e da pagina principal
     private MaterialCalendarView calendarView;
     private TextView textoSaudacao, textoSaldo;
     private Double despesaTotal = 0.00;
     private Double receitaTotal = 0.00;
     private Double resumoUsuario = 0.00;
 
+    //Atributos para utilizar o Firebase
     private FirebaseAuth autenticacao = ConfiguracaoFirebase.getFirebaseAutenticacao();
     private DatabaseReference firebaseRef = ConfiguracaoFirebase.getFirebaseDatabase();
     //Vamos criar um segundo database reference para que ele seja instanciado como um objeto. Aí poderemos anexar um evento a ele, desanexar um evento e chamá-lo de diversos locais do código. Assim, quando precisar chamar o evento de Listener do Firebase para atualizar o resumo poderemos retira-lo em dado momento, quando sairmos do app por exemplo, para não ficar sendo notificados do firebase
@@ -112,6 +119,8 @@ public class PrincipalActivity extends AppCompatActivity {
     private DatabaseReference movimentacaoRef;
     private String mesAnoSelecionado;
     private ValueEventListener valueEventListenerMovimentacoes;
+    //Atributo para pegar uma unica movimentação ( a principio usado na hora excluir com swipe)
+    private Movimentacao movimentacao;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -147,6 +156,8 @@ public class PrincipalActivity extends AppCompatActivity {
         textoSaudacao = findViewById(R.id.textSaudacao);
         calendarView = findViewById(R.id.calendarView);
         configuraCalendarView();
+        //inicia o swipe
+        //swipe();
 
         recyclerMovimentos = findViewById(R.id.recyclerMovimentos);
 
@@ -159,6 +170,8 @@ public class PrincipalActivity extends AppCompatActivity {
         recyclerMovimentos.setHasFixedSize(true);
         recyclerMovimentos.setAdapter(adapterMovimentacoes);
 
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallback);
+        itemTouchHelper.attachToRecyclerView(recyclerMovimentos);
     }
 
     //removendo event listener do objeto usuarioRef
@@ -177,12 +190,120 @@ public class PrincipalActivity extends AppCompatActivity {
         recuperarMovimentacoes();
     }
 
+    //método para adicionar o swipe (arrastar para os lados) no recyclerview
+    ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+        @Override
+        public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+            return false;
+        }
+
+        @Override
+        public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+            //Log.i("swipe", "Item foi arrastado");
+            excluirMovimentacao(viewHolder);
+        }
+    };
+
+    //Método chamado no swipe para excluir
+    public void excluirMovimentacao(RecyclerView.ViewHolder viewHolder){
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+
+        //Configura AlertDialog
+        alertDialog.setTitle("Excluir Movimentação da Conta");
+        alertDialog.setMessage("Você tem certeza que deseja excluir esta movimentação da sua conta?");
+        alertDialog.setCancelable(false);
+
+        alertDialog.setPositiveButton("Confirmar", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                //variavel recebe o método que recupera a posição do item que arrastamos
+                int position = viewHolder.getAdapterPosition();
+                //variavel que recebe o acesso ao item da lista que arrastamos
+                movimentacao = listaMovimentacoes.get(position);
+                //Log.i("movimentacao", movimentacao.getKey());
+
+                //Configurando o acesso ao Firebase para poder excluir o item arrastado da lista
+                String emailUsuario = autenticacao.getCurrentUser().getEmail();
+                String idUsuario = Base64Custom.codificarBase64(emailUsuario);
+
+                movimentacaoRef = firebaseRef.child("movimentacoes")
+                        .child(idUsuario)
+                        .child(mesAnoSelecionado);
+
+                //variavel de referencia do dado do banco sendo usada com método removeValue
+                movimentacaoRef.child(movimentacao.getKey()).removeValue();
+                //Ainda não sei pra que usar este adapter abaixo
+                adapterMovimentacoes.notifyItemRemoved(position);
+                atualizarSaldo();
+            }
+        });
+
+        alertDialog.setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                Toast.makeText(PrincipalActivity.this,
+                        "Nenhuma alteração realizada",
+                        Toast.LENGTH_SHORT).show();
+                //para que o item arrastado volte para a lista usamos o método para cghmar novamente todos os dados
+                adapterMovimentacoes.notifyDataSetChanged();
+            }
+        });
+
+        AlertDialog alert = alertDialog.create();
+        alert.show();
+    }
+    /*
+    public void swipe() {
+
+        ItemTouchHelper.Callback itemTouch = new ItemTouchHelper.Callback() {
+            @Override
+            public int getMovementFlags(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+
+                int dragFlags = ItemTouchHelper.ACTION_STATE_IDLE;
+                int swipeFlags = ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT;
+                return makeMovementFlags(dragFlags, swipeFlags);
+            }
+
+            @Override
+            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                Log.i("swipe", "Item foi arrastado");
+            }
+        };
+
+        new ItemTouchHelper(itemTouch).attachToRecyclerView(recyclerMovimentos);
+
+    }*/
+
     //RETIRADO: @Override
     //RETIRADO: public boolean onSupportNavigateUp() {
     //RETIRADO:     NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_principal);
     //RETIRADO:     return NavigationUI.navigateUp(navController, appBarConfiguration)
     //RETIRADO:             || super.onSupportNavigateUp();
     //RETIRADO: }
+
+    public void atualizarSaldo() {
+
+        //referencia do usuário
+        String emailUsuario = autenticacao.getCurrentUser().getEmail();
+        String idUsuario = Base64Custom.codificarBase64(emailUsuario);
+        usuarioRef = firebaseRef.child("usuarios").child(idUsuario);
+
+        if (movimentacao.getTipo().equals("r")){
+            receitaTotal = receitaTotal - movimentacao.getValor();
+            usuarioRef.child("receitaTotal").setValue(receitaTotal);
+        }
+
+        if (movimentacao.getTipo().equals("d")){
+            despesaTotal = despesaTotal - movimentacao.getValor();
+            usuarioRef.child("despesaTotal").setValue(despesaTotal);
+        }
+
+    }
 
     //recuperar os dados de movimentacoes
     public void recuperarMovimentacoes() {
@@ -207,11 +328,11 @@ public class PrincipalActivity extends AppCompatActivity {
                     //Log.i("dados", "retorno: " + dados.toString());
                     Movimentacao movimentacao = dados.getValue(Movimentacao.class);
                     //Log.i("dados", "retorno: " + movimentacao.getCategoria());
+                    movimentacao.setKey(dados.getKey());
                     listaMovimentacoes.add(movimentacao);
 
-
                 }
-
+                //último método que vai chamar todos os dados que recuperamos no for
                 adapterMovimentacoes.notifyDataSetChanged();
 
             }
@@ -226,6 +347,7 @@ public class PrincipalActivity extends AppCompatActivity {
     //método para recuperar o saldo do usuario
     public void recuperarResumo() {
 
+        //referencia do usuário
         String emailUsuario = autenticacao.getCurrentUser().getEmail();
         String idUsuario = Base64Custom.codificarBase64(emailUsuario);
         usuarioRef = firebaseRef.child("usuarios").child(idUsuario);
